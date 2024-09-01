@@ -1,0 +1,27 @@
+import serial
+import pymysql
+
+# Configurações do serial e do banco de dados
+ser = serial.Serial('COM3', 9600)
+db = pymysql.connect(host="localhost", user="root", passwd="", database="SecuritySystem")
+
+cursor = db.cursor()
+
+while True:
+    uid = ser.readline().decode().strip()
+    
+    if uid.startswith("UID:"):
+        uid = uid.replace("UID:", "")
+        
+        query = "SELECT name, series, cpf, course FROM Students WHERE uid=%s"
+        cursor.execute(query, (uid,))
+        result = cursor.fetchone()
+        
+        if result:
+            name, series, cpf, course = result
+            print(f"Acesso permitido para {name}")
+            print(f"Série: {series}, CPF: {cpf}, Curso: {course}")
+        else:
+            print("Acesso negado")
+
+db.close()
