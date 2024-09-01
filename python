@@ -2,26 +2,45 @@ import serial
 import pymysql
 
 # Configurações do serial e do banco de dados
-ser = serial.Serial('COM3', 9600)
-db = pymysql.connect(host="localhost", user="root", passwd="", database="SecuritySystem")
+try:
+    ser = serial.Serial('COM3', 9600)  # Substitua 'COM3' pela porta correta do seu sistema
+    db = pymysql.connect(
+    host="localhost",
+    user="root",
+    passwd="123456",
+    database="SecuritySystem",
+    port=3306  # Substitua se estiver usando uma porta diferente
+)
 
-cursor = db.cursor()
+    cursor = db.cursor()
+except serial.SerialException as e:
+    print(f"Erro na conexão serial: {e}")
+    exit()
+except pymysql.MySQLError as e:
+    print(f"Erro na conexão com o banco de dados: {e}")
+    exit()
 
-while True:
-    uid = ser.readline().decode().strip()
-    
-    if uid.startswith("UID:"):
-        uid = uid.replace("UID:", "")
-        
-        query = "SELECT name, series, cpf, course FROM Students WHERE uid=%s"
-        cursor.execute(query, (uid,))
-        result = cursor.fetchone()
-        
-        if result:
-            name, series, cpf, course = result
-            print(f"Acesso permitido para {name}")
-            print(f"Série: {series}, CPF: {cpf}, Curso: {course}")
-        else:
-            print("Acesso negado")
+try:
+    while True:
+        try:
+            uid = ser.readline().decode().strip()
+            
+            if uid.startswith("UID:"):
+                uid = uid.replace("UID:", "").strip().upper()  # Remove o prefixo e converte para maiúsculas
+                
+                query = "SELECT name, series, cpf, course FROM Students WHERE uid=%s"
+                cursor.execute(query, (uid,))
+                result = cursor.fetchone()
+                
+                if result:
+                    name, series, cpf, course = result
+                    print(f"Acesso permitido para {name}")
+                    print(f"Série: {series}, CPF: {cpf}, Curso: {course}")
+                else:
+                    print("Acesso negado")
+        except Exception as e:
+            print(f"Erro durante a leitura ou consulta: {e}")
+finally:
+    ser.close()
+    db.close()
 
-db.close()
