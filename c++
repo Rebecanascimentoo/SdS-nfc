@@ -1,4 +1,4 @@
-CODIGO C++
+
 
 
 #include <SPI.h>
