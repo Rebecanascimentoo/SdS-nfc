@@ -1,27 +1,62 @@
-CODIGO SQL:
+//CODIGO C++
+#include <SPI.h>
+#include <Wire.h>
+//#include <LiquidCrystal_I2C.h>
+#include <MFRC522.h>
+#include <SoftwareSerial.h>
 
-CREATE DATABASE IF NOT EXISTS SecuritySystem;
-USE SecuritySystem;
+// Definições dos pinos para o módulo NFC
+#define RST_PIN 9          // Pino de reset do módulo NFC
+#define SS_PIN 10          // Pino de seleção do módulo NFC
 
-CREATE TABLE Students (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    uid VARCHAR(16) NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    series VARCHAR(10) NOT NULL,
-    cpf VARCHAR(14) NOT NULL,
-    course VARCHAR(100) NOT NULL
-);
+// Inicialização dos objetos
+//LiquidCrystal_I2C lcd(0x27, 16, 2); // Endereço do LCD (0x27), 16 colunas e 2 linhas
+MFRC522 nfc(SS_PIN, RST_PIN);       // Configuração do módulo NFC
+SoftwareSerial mySerial(2, 3);      // RX=2, TX=3 - comunicação com o banco de dados
 
-CREATE INDEX idx_uid ON Students (uid);
+void setup() {
+    // Inicialização dos componentes
+  //  lcd.begin();
+    //lcd.backlight();          // Liga a luz de fundo do LCD
+    SPI.begin();             // Inicializa o SPI para comunicação com o módulo NFC
+    nfc.PCD_Init();         // Inicializa o módulo NFC
+    mySerial.begin(9600);   // Inicializa a comunicação serial com o banco de dados
 
-INSERT INTO Students (uid, name, series, cpf, course) VALUES 
-('abcdef12', 'Alice Silva', '3A', '123.456.789-00', 'Mecatronica'),
-('bcdef123', 'Bruno Souza', '2B', '234.567.890-11', 'Logistica'),
-('cdef1234', 'Carla Pereira', '1C', '345.678.901-22', 'Mecanica'),
-('def12345', 'Daniel Lima', '3A', '456.789.012-33', 'Mecatronica'),
-('ef123456', 'Eduardo Costa', '2B', '567.890.123-44', 'Logistica'),
-('f1234567', 'Fernanda Nunes', '1C', '678.901.234-55', 'Mecanica'),
-('01234567', 'Gustavo Rocha', '3A', '789.012.345-66', 'Mecatronica'),
-('12345678', 'Heloisa Martins', '2B', '890.123.456-77', 'Logistica'),
-('23456789', 'Isabela Oliveira', '1C', '901.234.567-88', 'Mecanica'),
-('34567890', 'Júlio Fernandes', '3A', '012.345.678-99', 'Mecatronica');
+    //lcd.setCursor(0, 0);
+    Serial.print("Aproxime o cartão");
+    //lcd.print("Aproxime o NFC");
+}
+
+void loop() {
+    // Verifica se há um cartão NFC próximo
+    if (!nfc.PICC_IsNewCardPresent() || !nfc.PICC_ReadCardSerial()) {
+        return;  // Retorna se nenhum cartão for detectado
+    }
+
+    // Exibe o UID do cartão na tela LCD
+    //lcd.clear();
+    //lcd.setCursor(0, 0);
+    Serial.print("Cartao lido:");
+    //lcd.print("Cartao lido:");
+
+    String uid = "";
+    for (byte i = 0; i < nfc.uid.size; i++) {
+        uid += String(nfc.uid.uidByte[i], HEX);  // Concatena cada byte do UID em hexadecimal
+    }
+    uid.toUpperCase();  // Converte o UID para maiúsculas para garantir a correspondência no banco de dados
+
+    //lcd.setCursor(0, 1);
+    //lcd.print(uid);
+
+    // Envia o UID para o banco de dados via serial
+    mySerial.print("UID:");
+    mySerial.println(uid);
+
+    // Espera 2 segundos para permitir que o usuário retire o cartão
+    delay(2000);
+
+    //lcd.clear();
+    //lcd.setCursor(0, 0);
+    Serial.print("Aproxime o NFC");
+    //lcd.print("Aproxime o NFC");
+}
